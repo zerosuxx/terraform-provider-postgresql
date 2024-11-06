@@ -944,9 +944,9 @@ func revokeRoles(txn *sql.Tx, d *schema.ResourceData) error {
 		grantedRoles = append(grantedRoles, grantedRole)
 	}
 
-	skipRoles := d.Get(roleSkipRevocationOfRolesBeforeGrant).([]string)
+	skipRoles := d.Get(roleSkipRevocationOfRolesBeforeGrant).(*schema.Set)
 	for _, grantedRole := range grantedRoles {
-		if contains(skipRoles, grantedRole) {
+		if skipRoles.Contains(grantedRole) {
 			log.Printf("[DEBUG] skipped revoking role %s from %s", grantedRole, role)
 			continue
 		}
@@ -1075,13 +1075,4 @@ func setAssumeRole(txn *sql.Tx, d *schema.ResourceData) error {
 		}
 	}
 	return nil
-}
-
-func contains(slice []string, item string) bool {
-	for _, s := range slice {
-		if s == item {
-			return true
-		}
-	}
-	return false
 }
