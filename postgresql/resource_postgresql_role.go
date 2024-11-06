@@ -20,6 +20,7 @@ const (
 	roleConnLimitAttr                       = "connection_limit"
 	roleCreateDBAttr                        = "create_database"
 	roleCreateRoleAttr                      = "create_role"
+	roleSkipRevocationOfRolesBeforeGrant    = "skip_revocation_of_roles_before_grant"
 	roleEncryptedPassAttr                   = "encrypted_password"
 	roleIdleInTransactionSessionTimeoutAttr = "idle_in_transaction_session_timeout"
 	roleInheritAttr                         = "inherit"
@@ -119,6 +120,14 @@ func resourcePostgreSQLRole() *schema.Resource {
 				Optional:    true,
 				Default:     false,
 				Description: "Determine whether this role will be permitted to create new roles",
+			},
+			roleSkipRevocationOfRolesBeforeGrant: {
+				Type:        schema.TypeSet,
+				Optional:    true,
+				Elem:        &schema.Schema{Type: schema.TypeString},
+				Set:         schema.HashString,
+				MinItems:    0,
+				Description: "Determine whether to skipping the revocation of role(s) before creation.",
 			},
 			roleIdleInTransactionSessionTimeoutAttr: {
 				Type:         schema.TypeInt,
@@ -935,7 +944,12 @@ func revokeRoles(txn *sql.Tx, d *schema.ResourceData) error {
 		grantedRoles = append(grantedRoles, grantedRole)
 	}
 
+	skipRoles := d.Get(roleSkipRevocationOfRolesBeforeGrant).([]string)
 	for _, grantedRole := range grantedRoles {
+		if contains(skipRoles, grantedRole) {
+			log.Printf("[DEBUG] skipped revoking role %s from %s", grantedRole, role)
+			continue
+		}
 		query = fmt.Sprintf("REVOKE %s FROM %s", pq.QuoteIdentifier(grantedRole), pq.QuoteIdentifier(role))
 
 		log.Printf("[DEBUG] revoking role %s from %s", grantedRole, role)
@@ -1061,4 +1075,13 @@ func setAssumeRole(txn *sql.Tx, d *schema.ResourceData) error {
 		}
 	}
 	return nil
+}
+
+func contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
 }
