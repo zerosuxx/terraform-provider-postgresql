@@ -87,6 +87,8 @@ resource "postgresql_role" "my_replication_role" {
 
 * `roles` - (Optional) Defines list of roles which will be granted to this new role.
 
+* `skip_revocation_of_roles_before_grant` - (Optional) A list of roles for which revocation will be skipped before granting.
+
 * `search_path` - (Optional) Alters the search path of this new role. Note that
   due to limitations in the implementation, values cannot contain the substring
   `", "`.
